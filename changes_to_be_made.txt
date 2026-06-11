@@ -1,0 +1,6 @@
+After the meeting with the prof
+
+- Instead of Logistic Regression (which I did) do LDA or naive bayes
+- Due to the class imbalance don't use accuracy/F1, classwise average as the measure
+- Wrong/missing data. If it can be corrected correct it otherwise drop it (Talk about this in the presentation)
+

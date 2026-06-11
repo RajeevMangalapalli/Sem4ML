@@ -1,0 +1,206 @@
+flight_number,name,rocket_name,launchpad_name,success,failures,crew_count,payloads_count,cores_reused,landing_success
+1,FalconSat,Falcon 1,Kwajalein Atoll,0,1,0,1,0,0
+2,DemoSat,Falcon 1,Kwajalein Atoll,0,1,0,1,0,0
+3,Trailblazer,Falcon 1,Kwajalein Atoll,0,1,0,2,0,0
+4,RatSat,Falcon 1,Kwajalein Atoll,1,0,0,1,0,0
+5,RazakSat,Falcon 1,Kwajalein Atoll,1,0,0,1,0,0
+6,Falcon 9 Test Flight,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+7,COTS 1,Falcon 9,CCSFS SLC 40,1,0,0,2,0,0
+8,COTS 2,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+9,CRS-1,Falcon 9,CCSFS SLC 40,1,0,0,2,0,0
+10,CRS-2,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+11,CASSIOPE,Falcon 9,VAFB SLC 4E,1,0,0,1,0,0
+12,SES-8,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+13,Thaicom 6,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+14,CRS-3,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+15,OG-2 Mission 1,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+16,AsiaSat 8,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+17,AsiaSat 6,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+18,CRS-4,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+19,CRS-5,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+20,DSCOVR,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+21,ABS-3A / Eutelsat 115W B,Falcon 9,CCSFS SLC 40,1,0,0,2,0,0
+22,CRS-6,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+23,TürkmenÄlem 52°E / MonacoSAT,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+24,CRS-7,Falcon 9,CCSFS SLC 40,0,1,0,1,0,0
+25,OG-2 Mission 2,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+26,Jason 3,Falcon 9,VAFB SLC 4E,1,0,0,1,0,0
+27,SES-9,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+28,CRS-8,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+29,JCSAT-2B,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+30,Thaicom 8,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+31,ABS-2A / Eutelsat 117W B,Falcon 9,CCSFS SLC 40,1,0,0,2,0,0
+32,CRS-9,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+33,JCSAT-16,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+34,Amos-6,Falcon 9,CCSFS SLC 40,0,1,0,1,0,0
+35,Iridium NEXT Mission 1,Falcon 9,VAFB SLC 4E,1,0,0,1,0,1
+36,CRS-10,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+37,EchoStar 23,Falcon 9,KSC LC 39A,1,0,0,1,0,0
+38,SES-10,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+39,NROL-76,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+40,Inmarsat-5 F4,Falcon 9,KSC LC 39A,1,0,0,1,0,0
+41,CRS-11,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+42,BulgariaSat-1,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+43,Iridium NEXT Mission 2,Falcon 9,VAFB SLC 4E,1,0,0,1,0,1
+44,Intelsat 35e,Falcon 9,KSC LC 39A,1,0,0,1,0,0
+45,CRS-12,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+46,FormoSat-5,Falcon 9,VAFB SLC 4E,1,0,0,1,0,1
+47,Boeing X-37B OTV-5,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+48,Iridium NEXT Mission 3,Falcon 9,VAFB SLC 4E,1,0,0,1,0,1
+49,SES-11 / Echostar 105,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+50,KoreaSat 5A,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+51,CRS-13,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+52,Iridium NEXT Mission 4,Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+53,ZUMA,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+54,SES-16 / GovSat-1,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+55,Falcon Heavy Test Flight,Falcon Heavy,KSC LC 39A,1,0,0,1,2,0
+56,Paz / Starlink Demo,Falcon 9,VAFB SLC 4E,1,0,0,2,1,0
+57,Hispasat 30W-6,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+58,Iridium NEXT Mission 5,Falcon 9,VAFB SLC 4E,1,0,0,1,1,0
+59,CRS-14,Falcon 9,CCSFS SLC 40,1,0,0,1,1,0
+60,TESS,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+61,Bangabandhu-1,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+62,Iridium NEXT Mission 6,Falcon 9,VAFB SLC 4E,1,0,0,2,1,0
+63,SES-12,Falcon 9,CCSFS SLC 40,1,0,0,1,1,0
+64,CRS-15,Falcon 9,CCSFS SLC 40,1,0,0,1,1,0
+65,Telstar 19V,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+66,Iridium NEXT Mission 7,Falcon 9,VAFB SLC 4E,1,0,0,1,0,1
+67,Merah Putih,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+68,Telstar 18V,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+69,SAOCOM 1A,Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+70,Es’hail 2,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+71,SSO-A,Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+72,CRS-16,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+73,GPS III SV01,Falcon 9,CCSFS SLC 40,1,0,0,1,0,0
+74,Iridium NEXT Mission 8,Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+75,Nusantara Satu (PSN-6) / S5 / Beresheet,Falcon 9,CCSFS SLC 40,1,0,0,3,1,1
+76,CCtCap Demo Mission 1,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+77,ArabSat 6A,Falcon Heavy,KSC LC 39A,1,0,0,1,0,1
+78,CRS-17,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+79,Starlink v0.9,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+80,RADARSAT Constellation,Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+81,STP-2,Falcon Heavy,KSC LC 39A,1,0,0,16,2,0
+82,CRS-18,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+83,Amos-17,Falcon 9,CCSFS SLC 40,1,0,0,1,1,0
+84,Starlink-1,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+85,CRS-19,Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+86,JCSat 18 / Kacific 1,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+87,Starlink-2,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+88,Crew Dragon In Flight Abort Test,Falcon 9,KSC LC 39A,1,0,0,1,1,0
+89,Starlink-3,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+90,Starlink-4,Falcon 9,CCSFS SLC 40,1,0,0,1,1,0
+91,CRS-20,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+92,Starlink-5,Falcon 9,KSC LC 39A,1,0,0,1,1,0
+93,Starlink-6,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+94,CCtCap Demo Mission 2,Falcon 9,KSC LC 39A,1,0,2,1,0,1
+95,Starlink-7,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+96,Starlink-8 & SkySat 16-18,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+97,GPS III SV03 (Columbus),Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+98,ANASIS-II,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+99,Starlink-9 (v1.0) & BlackSky Global 5-6,Falcon 9,KSC LC 39A,1,0,0,2,1,1
+100,Starlink-10 (v1.0) & SkySat 19-21,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+101,"SAOCOM 1B, GNOMES-1, Tyvak-0172",Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+102,Starlink-11 (v1.0),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+103,Starlink-12 (v1.0),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+104,Starlink-13 (v1.0),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+105,Starlink-14 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+106,GPS III SV04 (Sacagawea),Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+107,Crew-1,Falcon 9,KSC LC 39A,1,0,4,1,0,1
+108,Sentinel-6 Michael Freilich,Falcon 9,VAFB SLC 4E,1,0,0,1,0,1
+109,Starlink-15 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+110,CRS-21,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+111,SXM-7,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+112,NROL-108,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+113,Turksat 5A,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+114,Starlink-16 (v1.0),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+115,Transporter-1,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+116,Starlink-18 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+117,Starlink-19 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,0
+118,Starlink-17 (v1.0),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+119,Starlink-20 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+120,Starlink-21 (v1.0),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+121,Starlink-22 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+122,Starlink-23 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+123,Crew-2,Falcon 9,KSC LC 39A,1,0,4,1,1,1
+124,Starlink-24 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+125,Starlink-25 (v1.0),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+126,Starlink-27 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+127,Starlink-26 (v1.0) + Capella-6 + Tyvak-0130,Falcon 9,KSC LC 39A,1,0,0,3,1,1
+128,Starlink-28 (v1.0),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+129,CRS-22 & IROSA,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+130,SXM-8,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+131,GPS III SV05,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+132,Transporter-2,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+133,CRS-23,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+134,Starlink 2-1 (v1.5),Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+135,Inspiration4,Falcon 9,KSC LC 39A,1,0,4,1,1,1
+136,Crew-3,Falcon 9,KSC LC 39A,1,0,4,1,1,1
+137,Starlink 4-1 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+138,DART,Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+139,Starlink 4-3 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+140,IXPE,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+141,Starlink 4-4 (v1.5),Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+142,Türksat 5B,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+143,CRS-24,Falcon 9,KSC LC 39A,1,0,0,1,0,1
+144,Starlink 4-5 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+145,Transporter-3,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+146,Starlink 4-6 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+147,CSG-2,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+148,NROL-87,Falcon 9,VAFB SLC 4E,1,0,0,1,0,1
+149,Starlink 4-7 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+150,Starlink 4-8 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+151,Starlink 4-11 (v1.5),Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+152,Starlink 4-9 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+153,Starlink 4-10 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+154,Starlink 4-12 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+155,Transporter-4,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+156,Ax-1,Falcon 9,KSC LC 39A,1,0,4,1,1,1
+157,NROL-85,Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+158,Starlink 4-14 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+159,Crew-4,Falcon 9,KSC LC 39A,1,0,4,1,1,1
+160,Starlink 4-16 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+161,Starlink 4-17 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+162,Starlink 4-13 (v1.5),Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+163,Starlink 4-15 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,0,1
+164,Starlink 4-18 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+165,Transporter-5,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+166,Nilesat-301,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+167,Starlink 4-19 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+168,SARah 1,Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+169,Globalstar FM15,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+170,SES-22,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+171,Starlink 4-21 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+172,Starlink 3-1 (v1.5),Falcon 9,VAFB SLC 4E,0,0,0,1,1,1
+173,CRS-25,Falcon 9,KSC LC 39A,1,0,0,1,1,1
+174,Starlink 4-22 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+175,Starlink 3-2 (v1.5),Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+176,Starlink 4-25 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+177,KPLO,Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+178,Starlink 4-26 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+179,Starlink 3-3 (v1.5),Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+180,Starlink 4-27 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+181,Starlink 4-23 (v1.5),Falcon 9,KSC LC 39A,1,0,0,1,1,1
+182,Starlink 3-4 (v1.5),Falcon 9,VAFB SLC 4E,1,0,0,1,1,1
+183,Starlink 4-20 (v1.5) & Sherpa LTC-2/Varuna-TDM,Falcon 9,CCSFS SLC 40,1,0,0,2,1,1
+184,Starlink 4-2 (v1.5) & Blue Walker 3,Falcon 9,KSC LC 39A,1,0,0,2,1,1
+185,Starlink 4-34 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+186,Starlink 4-35 (v1.5),Falcon 9,CCSFS SLC 40,1,0,0,1,1,1
+187,Crew-5,Falcon 9,KSC LC 39A,1,0,4,1,0,1
+188,USSF-44,Falcon Heavy,KSC LC 39A,0,0,0,1,0,0
+188,Starlink 4-36 (v1.5),Falcon 9,CCSFS SLC 40,0,0,0,1,0,0
+188,Galaxy 33 (15R) & 34 (12R),Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+188,Hotbird 13F,Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+189,Hotbird 13G,Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+191,Galaxy 31 (23R) & 32 (17R),Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+192,Eutelsat 10B,Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+193,ispace Mission 1 & Rashid,Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+194,CRS-26,Falcon 9,KSC LC 39A,0,0,0,0,0,0
+195,Starlink 4-37 (v1.5),Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+196,"O3b mPower 1,2",Falcon 9,CCSFS SLC 40,0,0,0,1,0,0
+197,SWOT,Falcon 9,VAFB SLC 4E,0,0,0,0,0,0
+198,SES-18 & SES-19,Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+198,Transporter-6,Falcon 9,CCSFS SLC 40,0,0,0,0,0,0
+199,TTL-1,Falcon 9,VAFB SLC 4E,0,0,0,1,0,0
+200,WorldView Legion 1 & 2,Falcon 9,CCSFS SLC 40,0,0,0,1,0,0
+202,Viasat-3 & Arcturus,Falcon Heavy,KSC LC 39A,0,0,0,0,0,0
+203,O3b mPower 3.4,Falcon 9,CCSFS SLC 40,0,0,0,1,0,0
