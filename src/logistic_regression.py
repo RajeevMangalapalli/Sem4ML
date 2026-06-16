@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.linear_model import LogisticRegression
@@ -6,8 +7,16 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import matplotlib.pyplot as plt
 import numpy as np
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+DATA_DIR = PROJECT_ROOT / "data"
+PROCESSED_DATA_DIR = DATA_DIR / "processed"
+
+PROCESSED_DATA = PROCESSED_DATA_DIR / "processed_data.csv"
+
+
 # 1. Load data
-df = pd.read_csv("Project_Work/data/processed/processed_data.csv")
+df = pd.read_csv(PROCESSED_DATA)
 
 # 2. Drop identifiers to prevent memorization/leakage
 # Also consider dropping 'failures' if it's a post-event outcome
@@ -69,10 +78,10 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(X_train), start=1):
 
 # 7. Compute and display average cross-validation results
 print("\n=== Average Cross-Validation Results ===")
-print(f"Accuracy : {sum(accuracy_scores)/len(accuracy_scores):.4f}")
-print(f"Precision: {sum(precision_scores)/len(precision_scores):.4f}")
-print(f"Recall   : {sum(recall_scores)/len(recall_scores):.4f}")
-print(f"F1 Score : {sum(f1_scores)/len(f1_scores):.4f}")
+print(f"Accuracy : {sum(accuracy_scores) / len(accuracy_scores):.4f}")
+print(f"Precision: {sum(precision_scores) / len(precision_scores):.4f}")
+print(f"Recall   : {sum(recall_scores) / len(recall_scores):.4f}")
+print(f"F1 Score : {sum(f1_scores) / len(f1_scores):.4f}")
 
 # 8. Train on the full training set and evaluate on the separate test set
 model.fit(X_train, y_train)
@@ -85,23 +94,23 @@ print(f"Recall   : {recall_score(y_test, y_test_pred, zero_division=0):.4f}")
 print(f"F1 Score : {f1_score(y_test, y_test_pred, zero_division=0):.4f}")
 
 
-
 folds = np.arange(1, len(accuracy_scores) + 1)
 width = 0.2
 
 plt.figure(figsize=(12, 6))
 
-plt.bar(folds - 1.5 * width, accuracy_scores, width, label='Accuracy')
-plt.bar(folds - 0.5 * width, precision_scores, width, label='Precision')
-plt.bar(folds + 0.5 * width, recall_scores, width, label='Recall')
-plt.bar(folds + 1.5 * width, f1_scores, width, label='F1 Score')
+plt.bar(folds - 1.5 * width, accuracy_scores, width, label="Accuracy")
+plt.bar(folds - 0.5 * width, precision_scores, width, label="Precision")
+plt.bar(folds + 0.5 * width, recall_scores, width, label="Recall")
+plt.bar(folds + 1.5 * width, f1_scores, width, label="F1 Score")
 
-plt.title('5-Fold Cross Validation Metrics')
-plt.xlabel('Fold')
-plt.ylabel('Score')
-plt.xticks(folds, [f'Fold {i}' for i in folds])
+plt.title("5-Fold Cross Validation Metrics")
+plt.xlabel("Fold")
+plt.ylabel("Score")
+plt.xticks(folds, [f"Fold {i}" for i in folds])
 plt.ylim(0, 1)
 plt.legend()
-plt.grid(axis='y')
+plt.grid(axis="y")
 plt.tight_layout()
 plt.show()
+
