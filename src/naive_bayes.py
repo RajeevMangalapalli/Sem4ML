@@ -1,6 +1,13 @@
 from pathlib import Path
+import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split, KFold
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import (
+    LeaveOneOut,
+    RepeatedStratifiedKFold,
+    cross_validate,
+)
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import (
     accuracy_score,
@@ -8,18 +15,12 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     balanced_accuracy_score,
+    make_scorer,
 )
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
 DATA_DIR = PROJECT_ROOT / "data"
-PROCESSED_DATA_DIR = DATA_DIR / "processed"
-
-PROCESSED_DATA = PROCESSED_DATA_DIR / "processed_data.csv"
-
+PROCESSED_DATA = DATA_DIR / "processed" / "processed_data.csv"
 
 df = pd.read_csv(PROCESSED_DATA)
 
@@ -28,88 +29,147 @@ y = df["success"]
 
 X = pd.get_dummies(X, drop_first=True)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+# Class distribution
+print("Class distribution:")
+print(y.value_counts())
+print(f"Minority class ratio: {y.value_counts(normalize=True).min():.2%}")
 
+# 5 minority samples
+# LOOCV
+print("\n" + "=" * 60)
+print("Leave-One-Out Cross Validation")
+print("=" * 60)
+
+loo = LeaveOneOut()
 model = GaussianNB()
 
-kf = KFold(n_splits=5, shuffle=True, random_state=42)
+y_loo_pred = np.zeros(len(y), dtype=int)
 
-accuracy_scores = []
-precision_scores = []
-recall_scores = []
-f1_scores = []
-balanced_accuracy_scores = []
+for train_idx, test_idx in loo.split(X):
+    model = GaussianNB()
 
-print("5-Fold Cross Validation")
+    X_train = X.iloc[train_idx]
+    X_test = X.iloc[test_idx]
 
-for fold, (train_idx, val_idx) in enumerate(kf.split(X_train), start=1):
-    X_train_fold = X_train.iloc[train_idx]
-    X_val_fold = X_train.iloc[val_idx]
-    y_train_fold = y_train.iloc[train_idx]
-    y_val_fold = y_train.iloc[val_idx]
+    y_train = y.iloc[train_idx]
 
-    model.fit(X_train_fold, y_train_fold)
+    model.fit(X_train, y_train)
 
-    y_pred = model.predict(X_val_fold)
+    y_loo_pred[test_idx] = model.predict(X_test)
 
-    acc = accuracy_score(y_val_fold, y_pred)
-    prec = precision_score(y_val_fold, y_pred, zero_division=0)
-    rec = recall_score(y_val_fold, y_pred, zero_division=0)
-    f1 = f1_score(y_val_fold, y_pred, zero_division=0)
-    bal_acc = balanced_accuracy_score(y_val_fold, y_pred)
+loo_metrics = {
+    "Accuracy": accuracy_score(y, y_loo_pred),
+    "Precision": precision_score(y, y_loo_pred, zero_division=0),
+    "Recall": recall_score(y, y_loo_pred, zero_division=0),
+    "F1 Score": f1_score(y, y_loo_pred, zero_division=0),
+    "Balanced Accuracy": balanced_accuracy_score(y, y_loo_pred),
+}
 
-    accuracy_scores.append(acc)
-    precision_scores.append(prec)
-    recall_scores.append(rec)
-    f1_scores.append(f1)
-    balanced_accuracy_scores.append(bal_acc)
+print(f"{'Metric':<20} {'Score':>10}")
+print("-" * 32)
 
-    print(f"\nFold {fold}")
-    print(f"  Accuracy         : {acc:.4f}")
-    print(f"  Precision        : {prec:.4f}")
-    print(f"  Recall           : {rec:.4f}")
-    print(f"  F1 Score         : {f1:.4f}")
-    print(f"  Balanced Accuracy: {bal_acc:.4f}")
+for metric, value in loo_metrics.items():
+    print(f"{metric:<20} {value:>10.4f}")
 
-print("\n=== Average Cross-Validation Results ===")
-print(f"Accuracy         : {sum(accuracy_scores) / len(accuracy_scores):.4f}")
-print(f"Precision        : {sum(precision_scores) / len(precision_scores):.4f}")
-print(f"Recall           : {sum(recall_scores) / len(recall_scores):.4f}")
-print(f"F1 Score         : {sum(f1_scores) / len(f1_scores):.4f}")
-print(
-    f"Balanced Accuracy: {sum(balanced_accuracy_scores) / len(balanced_accuracy_scores):.4f}"
+# Repeated Stratified K-Fold
+# 5 folds x 20 repeats
+print("\n" + "=" * 60)
+print("Repeated Stratified K-Fold CV")
+print("=" * 60)
+
+rskf = RepeatedStratifiedKFold(n_splits=5, n_repeats=20, random_state=42)
+
+scoring = {
+    "accuracy": make_scorer(accuracy_score),
+    "precision": make_scorer(precision_score, zero_division=0),
+    "recall": make_scorer(recall_score, zero_division=0),
+    "f1": make_scorer(f1_score, zero_division=0),
+    "balanced_accuracy": make_scorer(balanced_accuracy_score),
+}
+
+cv_results = cross_validate(GaussianNB(), X, y, cv=rskf, scoring=scoring)
+
+print(f"{'Metric':<20} {'Mean':>10} {'Std':>10}")
+print("-" * 42)
+
+for label, key in [
+    ("Accuracy", "test_accuracy"),
+    ("Precision", "test_precision"),
+    ("Recall", "test_recall"),
+    ("F1 Score", "test_f1"),
+    ("Balanced Accuracy", "test_balanced_accuracy"),
+]:
+    scores = cv_results[key]
+
+    print(f"{label:<20}{scores.mean():>10.4f}{scores.std():>10.4f}")
+
+# Train final model on all available data
+print("\n" + "=" * 60)
+print("Final Model")
+print("=" * 60)
+
+final_model = GaussianNB()
+final_model.fit(X, y)
+
+print("Model trained on full dataset.")
+print("Use LOOCV metrics as the primary performance estimate.")
+
+# Visualization
+minority_mask = (y == y.value_counts().idxmin()).values
+majority_mask = ~minority_mask
+
+metric_names = list(loo_metrics.keys())
+metric_values = list(loo_metrics.values())
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Overall metrics
+axes[0].bar(
+    metric_names,
+    metric_values,
 )
 
-model.fit(X_train, y_train)
-y_test_pred = model.predict(X_test)
+axes[0].set_ylim(0, 1.05)
+axes[0].set_ylabel("Score")
+axes[0].set_title("LOOCV Overall Metrics (GaussianNB)")
+axes[0].grid(axis="y", alpha=0.3)
 
-print("\n=== Final Held-Out Test Set Results ===")
-print(f"Accuracy         : {accuracy_score(y_test, y_test_pred):.4f}")
-print(f"Precision        : {precision_score(y_test, y_test_pred, zero_division=0):.4f}")
-print(f"Recall           : {recall_score(y_test, y_test_pred, zero_division=0):.4f}")
-print(f"F1 Score         : {f1_score(y_test, y_test_pred, zero_division=0):.4f}")
-print(f"Balanced Accuracy: {balanced_accuracy_score(y_test, y_test_pred):.4f}")
+for i, value in enumerate(metric_values):
+    axes[0].text(
+        i,
+        value + 0.02,
+        f"{value:.3f}",
+        ha="center",
+    )
 
+# Per-sample correctness
+correct = (y_loo_pred == y.values).astype(int)
+sample_idx = np.arange(len(y))
 
-folds = np.arange(1, len(accuracy_scores) + 1)
-width = 0.15
+axes[1].scatter(
+    sample_idx[majority_mask],
+    correct[majority_mask],
+    label="Majority class",
+    alpha=0.5,
+    s=25,
+)
 
-plt.figure(figsize=(14, 6))
+axes[1].scatter(
+    sample_idx[minority_mask],
+    correct[minority_mask],
+    label="Minority class",
+    color="red",
+    marker="*",
+    s=120,
+    zorder=5,
+)
 
-plt.bar(folds - 2 * width, accuracy_scores, width, label="Accuracy")
-plt.bar(folds - width, precision_scores, width, label="Precision")
-plt.bar(folds, recall_scores, width, label="Recall")
-plt.bar(folds + width, f1_scores, width, label="F1 Score")
-plt.bar(folds + 2 * width, balanced_accuracy_scores, width, label="Balanced Accuracy")
+axes[1].set_title("LOOCV Per-Sample Correctness\n(1 = Correct, 0 = Incorrect)")
+axes[1].set_xlabel("Sample Index")
+axes[1].set_yticks([0, 1])
+axes[1].set_yticklabels(["Wrong", "Correct"])
+axes[1].grid(alpha=0.3)
+axes[1].legend()
 
-plt.title("5-Fold Cross Validation Metrics (Naive Bayes)")
-plt.xlabel("Fold")
-plt.ylabel("Score")
-plt.xticks(folds, [f"Fold {i}" for i in folds])
-plt.ylim(0, 1)
-plt.legend()
-plt.grid(axis="y")
 plt.tight_layout()
 plt.show()
