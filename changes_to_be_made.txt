@@ -4,3 +4,14 @@ After the meeting with the prof
 - Due to the class imbalance don't use accuracy/F1, classwise average as the measure
 - Wrong/missing data. If it can be corrected correct it otherwise drop it (Talk about this in the presentation)
 
+
+- To implement:
+    - Drop "landing_success" and the incorrect data (181 vs 5)
+    - feature selection techniques implementation
+    - SVM (Hyperparameter tuning)
+    - RandomForest (Hyperparameter tuning)
+    
+
+
+ 
+    
