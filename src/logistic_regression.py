@@ -19,8 +19,7 @@ PROCESSED_DATA = PROCESSED_DATA_DIR / "processed_data.csv"
 df = pd.read_csv(PROCESSED_DATA)
 
 # 2. Drop identifiers to prevent memorization/leakage
-# Also consider dropping 'failures' if it's a post-event outcome
-X = df.drop(columns=["success", "name", "flight_number"])
+X = df.drop(columns=["success", "name"])
 y = df["success"]
 
 # 3. Convert valid categorical features ('rocket_name', 'launchpad_name') to dummies

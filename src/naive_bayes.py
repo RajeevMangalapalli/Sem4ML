@@ -41,7 +41,6 @@ print("Leave-One-Out Cross Validation")
 print("=" * 60)
 
 loo = LeaveOneOut()
-model = GaussianNB()
 
 y_loo_pred = np.zeros(len(y), dtype=int)
 
