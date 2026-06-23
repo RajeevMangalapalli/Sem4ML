@@ -68,7 +68,7 @@ grid_search = GridSearchCV(
     cv=cv,
     n_jobs=-1,
     verbose=1,
-    refit=True,         # refit best model on full data after search
+    refit=True,  # refit best model on full data after search
     return_train_score=False,
 )
 
@@ -92,7 +92,9 @@ print("\nTop-10 configurations (by mean Balanced Accuracy):")
 print(f"{'Rank':<6}{'Params':<55}{'Mean BA':>8}{'Std':>8}")
 print("-" * 77)
 for i, row in top10.iterrows():
-    print(f"{i+1:<6}{str(row['params']):<55}{row['mean_test_score']:>8.4f}{row['std_test_score']:>8.4f}")
+    print(
+        f"{i + 1:<6}{str(row['params']):<55}{row['mean_test_score']:>8.4f}{row['std_test_score']:>8.4f}"
+    )
 
 # ── LOOCV with best params ─────────────────────────────────────────────────────
 # Grid search CV gives the tuning estimate; LOOCV gives the comparable
@@ -103,6 +105,7 @@ print("=" * 60)
 
 best_params = grid_search.best_params_
 
+
 def loocv_metrics(params):
     loo = LeaveOneOut()
     y_pred = np.zeros(len(y), dtype=int)
@@ -111,12 +114,13 @@ def loocv_metrics(params):
         m.fit(X_scaled.iloc[train_idx], y.iloc[train_idx])
         y_pred[test_idx] = m.predict(X_scaled.iloc[test_idx])
     return {
-        "Accuracy":          accuracy_score(y, y_pred),
-        "Precision":         precision_score(y, y_pred, zero_division=0),
-        "Recall":            recall_score(y, y_pred, zero_division=0),
-        "F1 Score":          f1_score(y, y_pred, zero_division=0),
+        "Accuracy": accuracy_score(y, y_pred),
+        "Precision": precision_score(y, y_pred, zero_division=0),
+        "Recall": recall_score(y, y_pred, zero_division=0),
+        "F1 Score": f1_score(y, y_pred, zero_division=0),
         "Balanced Accuracy": balanced_accuracy_score(y, y_pred),
     }, y_pred
+
 
 baseline_params = {"kernel": "rbf", "C": 1.0, "gamma": "scale"}
 print("Computing LOOCV for baseline …")
@@ -129,25 +133,25 @@ print("-" * 50)
 for metric in baseline_metrics:
     b = baseline_metrics[metric]
     t = tuned_metrics[metric]
-    print(f"{metric:<20} {b:>10.4f} {t:>10.4f} {t-b:>+8.4f}")
+    print(f"{metric:<20} {b:>10.4f} {t:>10.4f} {t - b:>+8.4f}")
 
 # ── Visualisation ──────────────────────────────────────────────────────────────
 minority_mask = (y == y.value_counts().idxmin()).values
-majority_mask  = ~minority_mask
-sample_idx     = np.arange(len(y))
+majority_mask = ~minority_mask
+sample_idx = np.arange(len(y))
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 fig.suptitle("SVM Hyperparameter Tuning", fontsize=13)
 
 # 1. Baseline vs Tuned metric comparison
-metric_names  = list(baseline_metrics.keys())
+metric_names = list(baseline_metrics.keys())
 baseline_vals = list(baseline_metrics.values())
-tuned_vals    = list(tuned_metrics.values())
-x_pos         = np.arange(len(metric_names))
-width         = 0.35
+tuned_vals = list(tuned_metrics.values())
+x_pos = np.arange(len(metric_names))
+width = 0.35
 
-axes[0].bar(x_pos - width/2, baseline_vals, width, label="Baseline (rbf, C=1)")
-axes[0].bar(x_pos + width/2, tuned_vals,    width, label=f"Tuned {best_params}")
+axes[0].bar(x_pos - width / 2, baseline_vals, width, label="Baseline (rbf, C=1)")
+axes[0].bar(x_pos + width / 2, tuned_vals, width, label=f"Tuned {best_params}")
 axes[0].set_xticks(x_pos)
 axes[0].set_xticklabels(metric_names, rotation=15, ha="right")
 axes[0].set_ylim(0, 1.15)
@@ -156,15 +160,27 @@ axes[0].set_title("Baseline vs Best Params")
 axes[0].legend(fontsize=7)
 axes[0].grid(axis="y", alpha=0.3)
 for i, (b, t) in enumerate(zip(baseline_vals, tuned_vals)):
-    axes[0].text(i - width/2, b + 0.02, f"{b:.3f}", ha="center", fontsize=7)
-    axes[0].text(i + width/2, t + 0.02, f"{t:.3f}", ha="center", fontsize=7)
+    axes[0].text(i - width / 2, b + 0.02, f"{b:.3f}", ha="center", fontsize=7)
+    axes[0].text(i + width / 2, t + 0.02, f"{t:.3f}", ha="center", fontsize=7)
 
 # 2. Per-sample correctness for tuned model
 correct_tuned = (y_tuned_pred == y.values).astype(int)
-axes[1].scatter(sample_idx[majority_mask], correct_tuned[majority_mask],
-                label="Majority", alpha=0.5, s=25)
-axes[1].scatter(sample_idx[minority_mask], correct_tuned[minority_mask],
-                label="Minority", color="red", marker="*", s=120, zorder=5)
+axes[1].scatter(
+    sample_idx[majority_mask],
+    correct_tuned[majority_mask],
+    label="Majority",
+    alpha=0.5,
+    s=25,
+)
+axes[1].scatter(
+    sample_idx[minority_mask],
+    correct_tuned[minority_mask],
+    label="Minority",
+    color="red",
+    marker="*",
+    s=120,
+    zorder=5,
+)
 axes[1].set_title("LOOCV Per-Sample Correctness\n(Tuned Model)")
 axes[1].set_xlabel("Sample Index")
 axes[1].set_yticks([0, 1])
@@ -174,14 +190,17 @@ axes[1].legend()
 
 # 3. Top-20 CV configurations scatter (mean BA vs std)
 top20 = results_df.nlargest(20, "mean_test_score")
-kernels  = [p["kernel"] for p in top20["params"]]
-colors   = {"rbf": "steelblue", "linear": "orange", "poly": "green", "sigmoid": "red"}
+kernels = [p["kernel"] for p in top20["params"]]
+colors = {"rbf": "steelblue", "linear": "orange", "poly": "green", "sigmoid": "red"}
 for kernel in colors:
     mask = [k == kernel for k in kernels]
     axes[2].scatter(
         top20["std_test_score"].values[mask],
         top20["mean_test_score"].values[mask],
-        label=kernel, color=colors[kernel], s=60, alpha=0.8,
+        label=kernel,
+        color=colors[kernel],
+        s=60,
+        alpha=0.8,
     )
 axes[2].set_xlabel("Std Balanced Accuracy")
 axes[2].set_ylabel("Mean Balanced Accuracy")
