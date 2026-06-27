@@ -6,9 +6,9 @@ After the meeting with the prof
 
 
 - To implement:
-    - Drop "landing_success" and the incorrect data (181 vs 5)
-    - feature selection techniques implementation
     - SVM (Hyperparameter tuning)
+        - After meeting with the Prof:
+            - Do a RandomSearch using more Parameters and check which ones remain constant
     - RandomForest (Hyperparameter tuning)
     
 

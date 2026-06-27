@@ -1,0 +1,14 @@
+- In the SVM implementation:
+    - The Top 10 Configuration/ Top 20 as a table
+    - The graphs from the GridSearchCV 
+
+- EDA (Data from the notebook)
+    - Highlight the class imbalance
+    - Talk about the corrupted data (what possibilities we had and what we did with it/ Data was collected wrong, increased the calss imbalance)
+    - Notable graphs/patterns
+
+
+- In the Naive Bayes implementation:
+    - The same graphs as in SVM (Do a comparision with them)
+
+

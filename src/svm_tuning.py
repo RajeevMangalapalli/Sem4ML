@@ -37,7 +37,7 @@ PROCESSED_DATA = DATA_DIR / "processed" / "processed_data.csv"
 
 df = pd.read_csv(PROCESSED_DATA)
 
-X = df.drop(columns=["success", "name"])
+X = df.drop(columns=["success"])
 y = df["success"]
 
 X = pd.get_dummies(X, drop_first=True)
@@ -74,9 +74,9 @@ grid_search = GridSearchCV(
 
 grid_search.fit(X_scaled, y)
 
-print("\n" + "=" * 60)
+
 print("Grid Search Results")
-print("=" * 60)
+print()
 print(f"Best params : {grid_search.best_params_}")
 print(f"Best BA (CV): {grid_search.best_score_:.4f}")
 
@@ -97,9 +97,9 @@ for i, row in top10.iterrows():
 # ── LOOCV with best params ─────────────────────────────────────────────────────
 # Grid search CV gives the tuning estimate; LOOCV gives the comparable
 # out-of-sample estimate on the full dataset (matches baseline evaluation).
-print("\n" + "=" * 60)
+
 print("LOOCV — Best Params vs Baseline")
-print("=" * 60)
+
 
 best_params = grid_search.best_params_
 

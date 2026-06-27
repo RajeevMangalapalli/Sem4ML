@@ -24,7 +24,7 @@ PROCESSED_DATA = DATA_DIR / "processed" / "processed_data.csv"
 
 df = pd.read_csv(PROCESSED_DATA)
 
-X = df.drop(columns=["success", "name"])
+X = df.drop(columns=["success"])
 y = df["success"]
 
 X = pd.get_dummies(X, drop_first=True)
