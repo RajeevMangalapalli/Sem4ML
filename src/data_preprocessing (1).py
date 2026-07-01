@@ -52,7 +52,7 @@ df.drop(
         "details",
         "landing_type",
         "name",
-        "landing_success"
+        "landing_success",
     ],
     axis="columns",
     inplace=True,
