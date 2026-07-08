@@ -37,6 +37,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import persist
+
+STEM = Path(__file__).stem
+persist.begin(STEM)
+
 from sklearn.model_selection import (
     GridSearchCV,
     LeaveOneOut,
@@ -237,3 +242,49 @@ axes[2].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
+
+md = [f"# Plot data — `{STEM}.py`\n"]
+md.append(f"## Best params\n\n`{grid_search.best_params_}`\n")
+md.append(f"Best BA (CV): **{grid_search.best_score_:.4f}**\n")
+md.append("\n## Top-10 configurations (by mean Balanced Accuracy)\n")
+md.append(persist.md_table(
+    ["Rank", "Params", "Mean BA", "Std"],
+    [
+        [i + 1, str(row["params"]), f"{row['mean_test_score']:.4f}", f"{row['std_test_score']:.4f}"]
+        for i, row in top10.iterrows()
+    ],
+))
+md.append("\n## LOOCV — Baseline vs Best params\n")
+md.append(f"Baseline params: `{baseline_params}`\n")
+md.append(f"Tuned params: `{best_params}`\n")
+md.append(persist.md_table(
+    ["Metric", "Baseline", "Tuned", "Δ"],
+    [
+        [m, f"{baseline_metrics[m]:.4f}", f"{tuned_metrics[m]:.4f}",
+         f"{tuned_metrics[m] - baseline_metrics[m]:+.4f}"]
+        for m in baseline_metrics
+    ],
+))
+md.append("\n## LOOCV per-sample correctness (Tuned model, 1=correct, 0=wrong)\n")
+correct_tuned = (y_tuned_pred == y.values).astype(int)
+md.append(persist.md_table(
+    ["Sample index", "True label", "Predicted", "Correct", "Class"],
+    [
+        [i, int(y.values[i]), int(y_tuned_pred[i]), int(correct_tuned[i]),
+         "minority" if minority_mask[i] else "majority"]
+        for i in range(len(y))
+    ],
+))
+md.append("\n## Top-20 grid configs (mean vs std, colour = max_features)\n")
+md.append(persist.md_table(
+    ["Params", "Mean BA", "Std BA", "max_features"],
+    [
+        [str(p), f"{r['mean_test_score']:.4f}", f"{r['std_test_score']:.4f}",
+         str(p["max_features"])]
+        for _, r in top20.iterrows()
+        for p in [r["params"]]
+    ],
+))
+persist.save_plot_data(STEM, "".join(md))
+
+persist.end()

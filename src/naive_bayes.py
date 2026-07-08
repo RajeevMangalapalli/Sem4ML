@@ -3,6 +3,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import persist
+
+STEM = Path(__file__).stem
+persist.begin(STEM)
+
 from sklearn.model_selection import (
     LeaveOneOut,
     RepeatedStratifiedKFold,
@@ -172,3 +177,37 @@ axes[1].legend()
 
 plt.tight_layout()
 plt.show()
+
+md = [f"# Plot data — `{STEM}.py`\n"]
+md.append("## LOOCV overall metrics (GaussianNB)\n")
+md.append(persist.md_table(
+    ["Metric", "Score"],
+    [[k, f"{v:.4f}"] for k, v in loo_metrics.items()],
+))
+md.append("\n## Repeated Stratified K-Fold CV (5×20)\n")
+md.append(persist.md_table(
+    ["Metric", "Mean", "Std"],
+    [
+        [label, f"{cv_results[key].mean():.4f}", f"{cv_results[key].std():.4f}"]
+        for label, key in [
+            ("Accuracy", "test_accuracy"),
+            ("Precision", "test_precision"),
+            ("Recall", "test_recall"),
+            ("F1 Score", "test_f1"),
+            ("Balanced Accuracy", "test_balanced_accuracy"),
+        ]
+    ],
+))
+md.append("\n## LOOCV per-sample correctness (1=correct, 0=wrong)\n")
+correct = (y_loo_pred == y.values).astype(int)
+md.append(persist.md_table(
+    ["Sample index", "True label", "Predicted", "Correct", "Class"],
+    [
+        [i, int(y.values[i]), int(y_loo_pred[i]), int(correct[i]),
+         "minority" if minority_mask[i] else "majority"]
+        for i in range(len(y))
+    ],
+))
+persist.save_plot_data(STEM, "".join(md))
+
+persist.end()

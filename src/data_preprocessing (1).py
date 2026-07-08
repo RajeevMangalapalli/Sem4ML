@@ -1,6 +1,11 @@
 from pathlib import Path
 import pandas as pd
 
+import persist
+
+STEM = Path(__file__).stem
+persist.begin(STEM)
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 DATA_DIR = PROJECT_ROOT / "data"
@@ -60,3 +65,9 @@ df.drop(
 
 # Save the processed data to a new CSV file
 df.to_csv(OUTPUT_PATH_LAUNCHES, index=False)
+
+print(f"Rows written   : {len(df)}")
+print(f"Output file    : {OUTPUT_PATH_LAUNCHES}")
+print(f"Columns        : {', '.join(df.columns)}")
+
+persist.end()

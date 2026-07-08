@@ -1,192 +1,243 @@
+"""
+Primary method: mRMR - model‑agnostic, uses mutual information
+only.  No classifier bias, no CV inside the selection loop.
+
+Wrapper methods (forward, backward, fwd+bwd) are parameterised by
+classifier so that the optimal subset can be found *per model* (NB, SVM,
+…).  CV strategy matches naive_bayes.py / svm.py (RepeatedStratifiedKFold
+for wrapper evaluation; final LOOCV on the full dataset).
+
+Key design choices:
+  - mRMR scaling:  features are StandardScaler‑ed before MI computation
+    because sklearn's MI estimators use k‑NN, which is scale‑sensitive.
+  - Wrapper scaling: per‑fold via Pipeline so scaling never leaks.
+  - Dynamic n_splits: RSKF adapts to the minority‑class count so wrappers
+    never hit an empty‑fold error.
+  - Hold‑out test set:  used for unbiased final evaluation.
+"""
+
 from pathlib import Path
-from itertools import combinations
+import time
+import warnings
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
+
+import persist
+
+STEM = Path(__file__).stem
+persist.begin(STEM)
+
+from sklearn.model_selection import (
+    train_test_split,
+    LeaveOneOut,
+    RepeatedStratifiedKFold,
+    cross_validate,
+)
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    balanced_accuracy_score,
+    make_scorer,
+)
 
+warnings.filterwarnings("ignore", category=UserWarning)
 
-DATA_PATH = Path(__file__).parent.parent / "data" / "processed" / "processed_data.csv"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = PROJECT_ROOT / "data" / "processed" / "processed_data.csv"
 TARGET = "success"
 MAX_FEATURES = 5
-CV = StratifiedKFold(n_splits=4, shuffle=True, random_state=42)
+RANDOM_STATE = 42
+
+LOOCV = LeaveOneOut()
 
 
+# Data loading
 def load_data():
     df = pd.read_csv(DATA_PATH)
-
-    for col in df.select_dtypes(include=["object", "str"]).columns:
-        df[col] = LabelEncoder().fit_transform(df[col].astype(str))
-
-    X = df.drop(columns=[TARGET])
+    X = df.drop(columns=[TARGET, "name"], errors="ignore")
     y = df[TARGET]
+    X = pd.get_dummies(X, drop_first=True)
     return X, y
 
 
-# Quality criterion: stratified 4-fold CV
-# Returns dict with accuracy and raw counts (correct/total) for overall,
-# failure (class 0), and success (class 1).
-# Selection functions use only overall_acc for comparisons.
-def train_and_test(X, y, feature_subset):
-    cols = list(feature_subset)
-    clf = LogisticRegression(max_iter=1000)
-    correct_all = total_all = 0
-    correct_0 = total_0 = 0
-    correct_1 = total_1 = 0
-
-    for train_idx, val_idx in CV.split(X, y):
-        X_tr = X.iloc[train_idx][cols]
-        X_val = X.iloc[val_idx][cols]
-        y_tr = y.iloc[train_idx]
-        y_val = y.iloc[val_idx]
-
-        clf.fit(X_tr, y_tr)
-        preds = clf.predict(X_val)
-
-        correct_all += (preds == y_val.values).sum()
-        total_all += len(y_val)
-
-        mask_0 = (y_val == 0).values
-        mask_1 = (y_val == 1).values
-        correct_0 += (preds[mask_0] == y_val.values[mask_0]).sum()
-        total_0 += mask_0.sum()
-        correct_1 += (preds[mask_1] == y_val.values[mask_1]).sum()
-        total_1 += mask_1.sum()
-
-    return {
-        "overall": (correct_all / total_all, correct_all, total_all),
-        "failure": (correct_0 / total_0, correct_0, total_0),
-        "success": (correct_1 / total_1, correct_1, total_1),
+def get_classifier(name):
+    clf_map = {
+        "nb": GaussianNB(),
+        "svm": SVC(kernel="rbf", class_weight="balanced", random_state=RANDOM_STATE),
+        "lr": LogisticRegression(
+            max_iter=2000, class_weight="balanced", random_state=RANDOM_STATE
+        ),
     }
+    if name not in clf_map:
+        raise ValueError(f"Unknown classifier '{name}'.  Choose: {list(clf_map)}")
+    return clf_map[name]
 
 
-def _score(X, y, subset):
-    """Classwise average accuracy (macro) — used for comparisons inside selection functions."""
-    r = train_and_test(X, y, subset)
-    return (r["failure"][0] + r["success"][0]) / 2
+def needs_scaling(name):
+    """GaussianNB needs no scaling; SVM (RBF) and LR benefit from it."""
+    return name in {"svm", "lr"}
 
 
-# 1. Exhaustive (brute-force) search
-#    Try all 2^p - 1 non-empty subsets. Practical only for small p.
-def exhaustive_search(X, y):
-    features = list(X.columns)
-    best_score = -1
-    best_subset = None
+def make_cv(y, n_repeats=5):
+    """Return RSKF with n_splits bounded by the minority‑class count.
 
-    for size in range(1, len(features) + 1):
-        for subset in combinations(features, size):
-            score = _score(X, y, subset)
-            if score > best_score:
-                best_score = score
-                best_subset = subset
-
-    return list(best_subset), train_and_test(X, y, list(best_subset))
+    If the training subset has < 2 minority samples we fall back to 2‑fold
+    so that balanced‑accuracy can still be computed (one sample in each
+    fold).
+    """
+    n_minority = y.value_counts().min()
+    n_splits = max(2, min(5, n_minority))
+    return RepeatedStratifiedKFold(
+        n_splits=n_splits, n_repeats=n_repeats, random_state=RANDOM_STATE
+    )
 
 
-# 2. Statistics-based: mRMR (Minimum-Redundancy Maximum-Relevance)
-#    Relevance:  D(S, y) = (1/|S|) * sum_{x_j in S} I(x_j; y)
-#    Redundancy: R(S)    = (1/|S|^2) * sum_{x_j, x_k in S} I(x_j; x_k)
-#    mRMR criterion: max_S [ (1/|S|) * sum I(f_i; c) - (1/|S|^2) * sum I(f_i; f_j) ]
-#    Solved greedily (no classifier needed).
+# Subset evaluation helper (used by every wrapper method)
+def evaluate_subset(X, y, subset, clf, cv, scale=False):
+    """Return mean **balanced accuracy** over all RSKF folds.
+
+    Scaling (when enabled) is wrapped in a Pipeline so that ``fit`` /
+    ``transform`` stays inside each fold — no leakage.
+    """
+    if len(subset) == 0:
+        return 0.0
+
+    X_sub = X[list(subset)]
+    estimator = make_pipeline(StandardScaler(), clf) if scale else clf
+
+    cv_results = cross_validate(
+        estimator,
+        X_sub,
+        y,
+        cv=cv,
+        scoring={"ba": make_scorer(balanced_accuracy_score)},
+        n_jobs=-1,
+        error_score="raise",
+    )
+    return cv_results["test_ba"].mean()
+
+
+# 1.  mRMR  (filter — model‑agnostic, no classifier, no CV)
 def mrmr_selection(X, y, n_features):
+    """Minimum‑Redundancy Maximum‑Relevance (greedy forward).
+
+    * Relevance:   D(f) = MI(f, y)           ← ``mutual_info_classif``
+    * Redundancy:  R(f) = mean_{s in S} MI(f, s)  ← ``mutual_info_regression``
+    * Criterion:   max  D(f) − R(f)
+
+    Features are scaled *once* before MI because both sklearn estimators
+    internally use k‑NN distance computations.
+    """
     features = list(X.columns)
+    scaler = StandardScaler()
+    X_s = pd.DataFrame(scaler.fit_transform(X), columns=features, index=X.index)
 
-    mi_target = dict(zip(features, mutual_info_classif(X, y, discrete_features=False)))
+    # Relevance
+    mi_target = dict(
+        zip(features, mutual_info_classif(X_s, y, random_state=RANDOM_STATE))
+    )
 
+    # Redundancy (pairwise MI)
     mi_pairs = {}
     for f in features:
-        mi_pairs[f] = dict(zip(features, mutual_info_regression(X, X[f])))
+        mi_pairs[f] = dict(
+            zip(
+                features,
+                mutual_info_regression(X_s, X_s[f], random_state=RANDOM_STATE),
+            )
+        )
 
     selected = []
     remaining = features.copy()
 
     for _ in range(n_features):
-        best_score = -np.inf
-        best_feature = None
-
+        best_score, best_feature = -np.inf, None
         for f in remaining:
             relevance = mi_target[f]
             redundancy = (
                 np.mean([mi_pairs[f][s] for s in selected]) if selected else 0.0
             )
             score = relevance - redundancy
-
             if score > best_score:
-                best_score = score
-                best_feature = f
-
+                best_score, best_feature = score, f
         selected.append(best_feature)
         remaining.remove(best_feature)
 
-    return selected, train_and_test(X, y, selected)
+    return selected, {"mi_target": mi_target, "order": selected.copy()}
 
 
-# 3. Forward selection
-#    Start with empty set. Greedily add the feature with highest CV accuracy.
-#    Stop when no improvement or MAX_FEATURES reached.
-def forward_selection(X, y, max_features=MAX_FEATURES):
+# 2.  Forward selection  (wrapper)
+def forward_selection(X, y, clf, cv, max_features=MAX_FEATURES, scale=False):
+    """Greedy forward wrapper — starts empty, adds best feature each step."""
     features = list(X.columns)
     selected = []
     best_score = 0.0
 
     while len(selected) < max_features:
-        scores = {
-            f: _score(X, y, selected + [f]) for f in features if f not in selected
+        candidates = {
+            f: evaluate_subset(X, y, selected + [f], clf, cv, scale)
+            for f in features
+            if f not in selected
         }
-
-        best_addition = max(scores, key=scores.get)
-
-        if scores[best_addition] > best_score:
-            selected.append(best_addition)
-            best_score = scores[best_addition]
+        best_candidate = max(candidates, key=candidates.get)
+        candidate_score = candidates[best_candidate]
+        if candidate_score > best_score:
+            selected.append(best_candidate)
+            best_score = candidate_score
         else:
             break
 
-    return selected, train_and_test(X, y, selected)
+    return selected, best_score
 
 
-# 4. Backward elimination
-#    Start with the full feature set. Greedily remove the feature whose
-#    removal hurts CV accuracy least. Stop when any removal degrades results.
-def backward_elimination(X, y):
+# 3.  Backward elimination  (wrapper)
+def backward_elimination(X, y, clf, cv, scale=False):
+    """Greedy backward wrapper — starts with all features, removes worst."""
     selected = list(X.columns)
-    best_score = _score(X, y, selected)
+    best_score = evaluate_subset(X, y, selected, clf, cv, scale)
 
     while len(selected) > 1:
-        scores = {f: _score(X, y, [x for x in selected if x != f]) for f in selected}
-
-        best_removal = max(scores, key=scores.get)
-
-        if scores[best_removal] >= best_score:
-            selected.remove(best_removal)
-            best_score = scores[best_removal]
+        scores = {
+            f: evaluate_subset(X, y, [x for x in selected if x != f], clf, cv, scale)
+            for f in selected
+        }
+        best_to_remove = max(scores, key=scores.get)
+        if scores[best_to_remove] >= best_score:
+            selected.remove(best_to_remove)
+            best_score = scores[best_to_remove]
         else:
             break
 
-    return selected, train_and_test(X, y, selected)
+    return selected, best_score
 
 
-# 5. Forward selection + Backward elimination (combined)
-#    Alternate passes until the selected set stabilises.
-def forward_backward_selection(X, y, max_features=MAX_FEATURES):
-    selected, _ = forward_selection(X, y, max_features)
+# 4.  Forward + Backward  (wrapper)
+def forward_backward_selection(X, y, clf, cv, max_features=MAX_FEATURES, scale=False):
+    """Alternate forward and backward passes until the selected set stabilises."""
+    selected, _ = forward_selection(X, y, clf, cv, max_features, scale)
 
-    while True:
+    for _ in range(20):  # safety cap
         prev = set(selected)
 
-        selected, _ = backward_elimination(X[selected], y)
+        # Backward pass
+        selected, best_score = backward_elimination(X[selected], y, clf, cv, scale)
 
-        best_score = _score(X, y, selected)
+        # Forward pass
         candidates = {
-            f: _score(X, y, selected + [f])
+            f: evaluate_subset(X, y, selected + [f], clf, cv, scale)
             for f in X.columns
             if f not in selected and len(selected) < max_features
         }
-
         if candidates:
             best_add = max(candidates, key=candidates.get)
             if candidates[best_add] > best_score:
@@ -195,158 +246,242 @@ def forward_backward_selection(X, y, max_features=MAX_FEATURES):
         if set(selected) == prev:
             break
 
-    return selected, train_and_test(X, y, selected)
+    final_score = evaluate_subset(X, y, selected, clf, cv, scale)
+    return selected, final_score
 
 
-# Feature ranking helpers
-def rank_features(X, y, feature_subset, top_n=3):
-    """Evaluate features individually, ranked by classwise avg.
-    If the selected subset has fewer than top_n features, the remaining
-    slots are filled with the best features from the full feature pool."""
-    pool = list(feature_subset)
-    if len(pool) < top_n:
-        pool += [f for f in X.columns if f not in pool]
+# Final evaluation helpers
+def evaluate_loocv(X, y, subset, clf, scale=False):
+    """LOOCV on a fixed feature subset — matches naive_bayes.py / svm.py."""
+    X_sub = X[list(subset)]
+    y_pred = np.zeros(len(y), dtype=int)
 
-    rows = []
-    for f in pool:
-        s = train_and_test(X, y, [f])
-        cw = (s["failure"][0] + s["success"][0]) / 2
-        rows.append(
-            {
-                "feature": f,
-                "scores": s,
-                "classwise_avg": cw,
-                "selected": f in feature_subset,
-            }
+    for train_idx, test_idx in LOOCV.split(X_sub):
+        X_tr, X_te = X_sub.iloc[train_idx], X_sub.iloc[test_idx]
+        y_tr = y.iloc[train_idx]
+
+        if scale:
+            sc = StandardScaler()
+            X_tr = pd.DataFrame(
+                sc.fit_transform(X_tr), columns=X_tr.columns, index=X_tr.index
+            )
+            X_te = pd.DataFrame(
+                sc.transform(X_te), columns=X_te.columns, index=X_te.index
+            )
+
+        clf.fit(X_tr, y_tr)
+        y_pred[test_idx] = clf.predict(X_te)
+
+    return {
+        "balanced_accuracy": balanced_accuracy_score(y, y_pred),
+        "accuracy": accuracy_score(y, y_pred),
+        "precision": precision_score(y, y_pred, zero_division=0),
+        "recall": recall_score(y, y_pred, zero_division=0),
+        "f1": f1_score(y, y_pred, zero_division=0),
+    }
+
+
+def evaluate_holdout(X_tr, y_tr, X_te, y_te, subset, clf, scale=False):
+    """Train on training set, predict on hold‑out test set."""
+    X_tr_sub = X_tr[list(subset)]
+    X_te_sub = X_te[list(subset)]
+
+    if scale:
+        sc = StandardScaler()
+        X_tr_sub = pd.DataFrame(
+            sc.fit_transform(X_tr_sub), columns=X_tr_sub.columns, index=X_tr_sub.index
         )
-    rows.sort(key=lambda r: r["classwise_avg"], reverse=True)
-    return rows[:top_n]
+        X_te_sub = pd.DataFrame(
+            sc.transform(X_te_sub), columns=X_te_sub.columns, index=X_te_sub.index
+        )
+
+    clf.fit(X_tr_sub, y_tr)
+    y_pred = clf.predict(X_te_sub)
+
+    return {
+        "balanced_accuracy": balanced_accuracy_score(y_te, y_pred),
+        "accuracy": accuracy_score(y_te, y_pred),
+        "precision": precision_score(y_te, y_pred, zero_division=0),
+        "recall": recall_score(y_te, y_pred, zero_division=0),
+        "f1": f1_score(y_te, y_pred, zero_division=0),
+    }
 
 
-def print_ranking(ranking):
-    for i, r in enumerate(ranking, 1):
-        s = r["scores"]
-        ov_acc, ov_c, ov_t = s["overall"]
-        f_acc, f_c, f_t = s["failure"]
-        s_acc, s_c, s_t = s["success"]
-        cw = r["classwise_avg"]
-        tag = "" if r["selected"] else "  (not in selected subset)"
-        print(f"  #{i} {r['feature']}{tag}")
-        print(f"     overall acc   : {ov_acc:.4f}  ({ov_c}/{ov_t})")
-        print(f"     failure acc   : {f_acc:.4f}  ({f_c}/{f_t})  (class 0)")
-        print(f"     success acc   : {s_acc:.4f}  ({s_c}/{s_t})  (class 1)")
-        print(f"     classwise avg : {cw:.4f}")
+# Printing helpers
+def _hr(title: str):
+    print(f"\n{'=' * 60}\n  {title}\n{'=' * 60}")
 
 
-def plot_rankings(all_rankings, method_names):
-    """Bar chart: one subplot per method, top-3 features × 3 metrics."""
-    metrics = ["overall", "failure", "success"]
-    labels = ["Overall", "Failure (class 0)", "Success (class 1)"]
-    colors = ["steelblue", "tomato", "mediumseagreen"]
-    n_methods = len(method_names)
-    fig, axes = plt.subplots(1, n_methods, figsize=(5 * n_methods, 5), sharey=True)
-    if n_methods == 1:
+def _metrics(metrics: dict, indent=4):
+    for k, v in metrics.items():
+        print(f"{' ' * indent}{k:<19s} {v:.4f}")
+
+
+# Plotting
+def plot_wrapper_results(all_results, mrmr_subset):
+    n = len(all_results)
+    if n == 0:
+        return
+
+    fig, axes = plt.subplots(1, n, figsize=(5 * n, 5), sharey=True)
+    if n == 1:
         axes = [axes]
 
-    bar_width = 0.22
-    for ax, name, ranking in zip(axes, method_names, all_rankings):
-        features = [r["feature"] for r in ranking]
-        x = np.arange(len(features))
-        for i, (metric, label, color) in enumerate(zip(metrics, labels, colors)):
-            vals = [r["scores"][metric][0] for r in ranking]
-            ax.bar(x + i * bar_width, vals, bar_width, label=label, color=color)
-        ax.set_title(name)
-        ax.set_xticks(x + bar_width)
-        ax.set_xticklabels(features, rotation=25, ha="right", fontsize=8)
+    methods = ["Forward", "Backward", "Fwd+Bwd"]
+    colors = ["steelblue", "tomato", "mediumseagreen"]
+
+    for ax, (name, res) in zip(axes, all_results.items()):
+        ba = [res["forward"][1], res["backward"][1], res["forward_backward"][1]]
+        subsets = [res["forward"][0], res["backward"][0], res["forward_backward"][0]]
+
+        x = np.arange(len(methods))
+        bars = ax.bar(x, ba, color=colors)
+        ax.set_title(name.upper(), fontsize=11)
+        ax.set_xticks(x)
+        ax.set_xticklabels(methods, rotation=20, ha="right", fontsize=9)
         ax.set_ylim(0, 1.05)
-        ax.set_ylabel("Accuracy")
-        ax.legend(fontsize=7)
+        ax.set_ylabel("Balanced Accuracy (RSKF)")
+        ax.grid(axis="y", alpha=0.3)
+
+        for bar, val, sub in zip(bars, ba, subsets):
+            label = ", ".join(sub[:2]) + ("…" if len(sub) > 2 else "")
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.02,
+                f"{val:.3f}\n({label})",
+                ha="center",
+                va="bottom",
+                fontsize=7,
+            )
 
     fig.suptitle(
-        "Top-3 feature ranking per method (individual CV accuracy)", fontsize=12
+        f"Wrapper Feature Selection  —  CV: RSKF (per classifier)\n"
+        f"mRMR subset: {', '.join(mrmr_subset[:3])}…",
+        fontsize=12,
     )
     plt.tight_layout()
     plt.show()
 
 
 # Main
-def print_result(subset, scores):
-    ov_acc, ov_c, ov_t = scores["overall"]
-    f_acc, f_c, f_t = scores["failure"]
-    s_acc, s_c, s_t = scores["success"]
-    cw_avg = (f_acc + s_acc) / 2
-    print(f"  Selected          : {subset}")
-    print(f"  CV accuracy       : {ov_acc:.4f}  ({ov_c}/{ov_t})")
-    print(f"  CV acc failure    : {f_acc:.4f}  ({f_c}/{f_t})  (class 0)")
-    print(f"  CV acc success    : {s_acc:.4f}  ({s_c}/{s_t})  (class 1)")
-    print(f"  CV classwise avg  : {cw_avg:.4f}\n")
-
-
 if __name__ == "__main__":
-    import time
-
     X, y = load_data()
-    print(f"Features: {list(X.columns)}")
-    print(f"Samples:  {len(X)}  (class distribution: {dict(y.value_counts())})\n")
+    print(f"Features       : {len(X.columns)}  ({', '.join(X.columns)})")
+    print(f"Samples        : {len(X)}")
+    print(f"Classes        : {dict(y.value_counts())}")
+    print(
+        f"Imbalance      : {y.value_counts(normalize=True).max():.1%} / "
+        f"{y.value_counts(normalize=True).min():.1%}"
+    )
 
+    # ── Train / validation / test split ──────────────────────────────
     X_tv, X_test, y_tv, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
     )
+    print(f"\nTrain/val      : {len(X_tv)}  ({dict(y_tv.value_counts())})")
+    print(f"Test           : {len(X_test)}  ({dict(y_test.value_counts())})")
 
-    # print("=== 1. Exhaustive search ===")
-    # t0 = time.time()
-    # ex_subset, ex_scores = exhaustive_search(X_tv, y_tv)
-    # print(f"  Time: {time.time() - t0:.2f}s")
-    # print_result(ex_subset, ex_scores)
+    # Dynamic CV for wrappers (adapts to minority count in X_tv)
+    cv = make_cv(y_tv)
+    print(f"Inner CV       : {cv}")
 
-    print("=== 2. mRMR (statistics-based) ===")
+    # ── 1.  mRMR  (model‑agnostic filter) ────────────────────────────
+    _hr("mRMR — filter (model‑agnostic, MI‑based)")
     t0 = time.time()
-    mrmr_subset, mrmr_scores = mrmr_selection(X_tv, y_tv, n_features=5)
-    print(f"  Time: {time.time() - t0:.2f}s")
-    print_result(mrmr_subset, mrmr_scores)
+    mrmr_subset, mrmr_info = mrmr_selection(X_tv, y_tv, n_features=MAX_FEATURES)
+    print(f"  Selected     : {mrmr_subset}")
+    print(f"  MI with target:")
+    for f in mrmr_info["order"]:
+        print(f"    {f:<35s}  MI = {mrmr_info['mi_target'][f]:.4f}")
+    print(f"  Time         : {time.time() - t0:.1f}s")
 
-    print("=== 3. Forward selection ===")
-    t0 = time.time()
-    fwd_subset, fwd_scores = forward_selection(X_tv, y_tv)
-    print(f"  Time: {time.time() - t0:.2f}s")
-    print_result(fwd_subset, fwd_scores)
+    # ── 2.  Wrapper methods per classifier ───────────────────────────
+    classifiers = [
+        ("nb", get_classifier("nb"), False),
+        ("svm", get_classifier("svm"), True),
+        ("lr", get_classifier("lr"), True),
+    ]
 
-    print("=== 4. Backward elimination ===")
-    t0 = time.time()
-    bwd_subset, bwd_scores = backward_elimination(X_tv, y_tv)
-    print(f"  Time: {time.time() - t0:.2f}s")
-    print_result(bwd_subset, bwd_scores)
+    all_wrapper = {}
 
-    print("=== 5. Forward + Backward selection ===")
-    t0 = time.time()
-    fb_subset, fb_scores = forward_backward_selection(X_tv, y_tv)
-    print(f"  Time: {time.time() - t0:.2f}s")
-    print_result(fb_subset, fb_scores)
+    for name, clf, scale in classifiers:
+        _hr(f"Wrapper Methods  —  classifier: {name.upper()}")
 
-    results = {
-        #'exhaustive':       (ex_subset,   ex_scores),
-        "mRMR": (mrmr_subset, mrmr_scores),
-        "forward": (fwd_subset, fwd_scores),
-        "backward": (bwd_subset, bwd_scores),
-        "forward+backward": (fb_subset, fb_scores),
-    }
-    best_method = max(
-        results,
-        key=lambda k: (results[k][1]["failure"][0] + results[k][1]["success"][0]) / 2,
-    )
-    best_subset, best_scores = results[best_method]
+        t0 = time.time()
+        fwd, fwd_ba = forward_selection(X_tv, y_tv, clf, cv, MAX_FEATURES, scale)
+        print(f"  Forward            : {fwd}")
+        print(f"    BA (RSKF) = {fwd_ba:.4f}  [{time.time() - t0:.1f}s]")
 
-    print(f"=== Best method on CV: {best_method} ===")
-    print_result(best_subset, best_scores)
+        t0 = time.time()
+        bwd, bwd_ba = backward_elimination(X_tv, y_tv, clf, cv, scale)
+        print(f"  Backward           : {bwd}")
+        print(f"    BA (RSKF) = {bwd_ba:.4f}  [{time.time() - t0:.1f}s]")
 
-    # Top-3 feature ranking per method
-    print("=== Top-3 feature ranking per method ===\n")
-    all_rankings = []
-    for name, (subset, _) in results.items():
-        top3 = rank_features(X_tv, y_tv, subset, top_n=3)
-        all_rankings.append(top3)
-        print(f"-- {name} --")
-        print_ranking(top3)
-        print()
+        t0 = time.time()
+        fb, fb_ba = forward_backward_selection(X_tv, y_tv, clf, cv, MAX_FEATURES, scale)
+        print(f"  Forward+Backward   : {fb}")
+        print(f"    BA (RSKF) = {fb_ba:.4f}  [{time.time() - t0:.1f}s]")
 
-    plot_rankings(all_rankings, list(results.keys()))
+        all_wrapper[name] = {
+            "forward": (fwd, fwd_ba),
+            "backward": (bwd, bwd_ba),
+            "forward_backward": (fb, fb_ba),
+        }
+
+    # ── 3.  Best subset per classifier ───────────────────────────────
+    _hr("Best subset per classifier")
+    best_subsets = {"mrmr": (mrmr_subset, "mRMR (filter)")}
+    for name, _, _ in classifiers:
+        best_method = max(all_wrapper[name], key=lambda k: all_wrapper[name][k][1])
+        subset, ba = all_wrapper[name][best_method]
+        best_subsets[name] = (subset, best_method)
+        print(f"  {name.upper():>3s}  {best_method:<20s}  BA={ba:.4f}  →  {subset}")
+
+    # ── 4.  Hold‑out evaluation ──────────────────────────────────────
+    _hr("Hold‑out test evaluation")
+    for label, (subset, method) in best_subsets.items():
+        if label == "mrmr":
+            for c_name, c_clf, c_scale in classifiers:
+                m = evaluate_holdout(X_tv, y_tv, X_test, y_test, subset, c_clf, c_scale)
+                print(f"\n  mRMR subset × {c_name.upper()}  ({len(subset)} features)")
+                _metrics(m)
+        else:
+            c_clf = get_classifier(label)
+            c_scale = needs_scaling(label)
+            m = evaluate_holdout(X_tv, y_tv, X_test, y_test, subset, c_clf, c_scale)
+            print(f"\n  {label.upper()} ({method})  ({len(subset)} features)")
+            _metrics(m)
+
+    # ── 5.  LOOCV on full data (mRMR subset) ─────────────────────────
+    _hr("LOOCV — mRMR subset × each classifier (full dataset)")
+    for c_name, c_clf, c_scale in classifiers:
+        t0 = time.time()
+        m = evaluate_loocv(X, y, mrmr_subset, c_clf, c_scale)
+        print(f"\n  {c_name.upper()}  ({len(X)} samples, {len(mrmr_subset)} features)")
+        _metrics(m)
+        print(f"    [{time.time() - t0:.1f}s]")
+
+    # ── 6.  Plot ─────────────────────────────────────────────────────
+    plot_wrapper_results(all_wrapper, mrmr_subset)
+
+    # ── 7.  Persist plot data ────────────────────────────────────────
+    md = [f"# Plot data — `{STEM}.py`\n"]
+    md.append("## Wrapper feature-selection results (Balanced Accuracy, RSKF)\n")
+    md.append(persist.md_table(
+        ["Classifier", "Method", "Balanced Accuracy", "Selected features"],
+        [
+            [name.upper(), method, f"{res[1]:.4f}", ", ".join(res[0])]
+            for name, resdict in all_wrapper.items()
+            for method, res in resdict.items()
+        ],
+    ))
+    md.append("\n## mRMR selected subset\n")
+    md.append(", ".join(mrmr_subset) + "\n")
+    md.append("\n## MI with target (mRMR order)\n")
+    md.append(persist.md_table(
+        ["Feature", "MI with target"],
+        [[f, f"{mrmr_info['mi_target'][f]:.4f}"] for f in mrmr_info["order"]],
+    ))
+    persist.save_plot_data(STEM, "".join(md))
+
+    persist.end()
